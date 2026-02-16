@@ -31,6 +31,20 @@ def generate_feedback_prompt(metrics: dict) -> str:
 - Direct distance: {metrics.get('direct_distance', 0):.0f}px
 - (Higher efficiency = more direct, controlled path)
 
+**Movement Variability (Entropy)**: {metrics.get('trajectory_entropy', 0):.2f}
+- (Higher = more varied direction changes; lower = more repeatable path)
+
+**Straight Arms / Relaxed Shoulders**:
+- Elbow extension ratio: {metrics.get('elbow_extension_ratio', 0):.1%} (frames with elbow angle >=150deg)
+- Shoulder relax ratio: {metrics.get('shoulder_relax_ratio', 0):.1%} (frames with shoulder angle >=150deg)
+
+**Reaching Efficiency**:
+- Avg reach duration: {metrics.get('avg_reach_duration', 0):.2f}s
+- Long reaches (>1s): {metrics.get('long_reach_count', 0)}
+
+**CoM / Hip Smoothness**:
+- Smoothness score: {metrics.get('com_smoothness_score', 0):.1%}
+
 **Movement Rhythm**:
 - Move count: {metrics.get('move_count', 0)}
 - Average pause duration: {metrics.get('avg_pause_duration', 0):.1f}s
@@ -152,6 +166,37 @@ def format_metrics_for_display(metrics: dict) -> dict:
             "label": "Movement Rhythm",
             "description": "Consistency of your climbing tempo"
         },
+        "entropy": {
+            "value": metrics.get('trajectory_entropy', 0),
+            "label": "Trajectory Entropy",
+            "description": "Direction-change variability of the hip path (lower = more repeatable)",
+            "rating": _get_rating(1 - metrics.get('trajectory_entropy', 0), [0.4, 0.6, 0.75])
+        },
+        "straightArms": {
+            "value": metrics.get('elbow_extension_ratio', 0),
+            "label": "Straight Arms",
+            "description": "Fraction of frames with open elbow angles (energy-saving)",
+            "rating": _get_rating(metrics.get('elbow_extension_ratio', 0), [0.4, 0.6, 0.75])
+        },
+        "shoulderRelax": {
+            "value": metrics.get('shoulder_relax_ratio', 0),
+            "label": "Shoulder Relax",
+            "description": "Fraction of frames with open shoulder angles (avoid locked shoulders)",
+            "rating": _get_rating(metrics.get('shoulder_relax_ratio', 0), [0.4, 0.6, 0.75])
+        },
+        "reach": {
+            "avgDuration": metrics.get('avg_reach_duration', 0),
+            "longCount": metrics.get('long_reach_count', 0),
+            "label": "Reaching",
+            "description": "Reach duration proxy from wrist speed (long reaches can indicate hesitation)"
+        },
+        "comSmoothness": {
+            "value": metrics.get('com_smoothness_score', 0),
+            "label": "Hip Smoothness",
+            "description": "Smoothness of hip (CoM proxy) trajectory",
+            "rating": _get_rating(metrics.get('com_smoothness_score', 0), [0.4, 0.6, 0.75])
+        }
+
         "duration": metrics.get('climb_duration', 0)
     }
 

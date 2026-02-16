@@ -63,6 +63,8 @@ Open http://localhost:3000
 | DELETE | `/job/{id}` | Delete job and files |
 
 ## Metrics Explained
+See also: `docs/heuristics.md` for the full list of backend heuristics and research citations.
+
 
 ### Path Efficiency
 Ratio of direct distance to total distance traveled by hips. Higher = more controlled movement.

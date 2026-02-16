@@ -154,10 +154,8 @@ async def process_job(job_id: str, video_path: str):
         
         # Calculate metrics
         metrics = calculate_all_metrics(
-            hip_trajectory=trajectories["hip_trajectory"],
-            timestamps=trajectories["timestamps"],
-            ankle_trajectories=trajectories["ankle_trajectories"],
-            shoulder_positions=trajectories["shoulder_trajectory"]
+            pose_keypoints_per_frame=[pf.keypoints for pf in pose_frames],
+            pose_timestamps=[pf.timestamp for pf in pose_frames],
         )
         job.progress = 70
         
