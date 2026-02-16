@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 10, 10, 10;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom, rgb(15, 15, 15), rgb(5, 5, 5));
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(34, 197, 94, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Upload zone styles */
+.upload-zone {
+  @apply border-2 border-dashed border-gray-600 rounded-2xl p-12 text-center transition-all duration-300;
+}
+
+.upload-zone:hover {
+  @apply border-brand-500 bg-brand-500/5;
+}
+
+.upload-zone.active {
+  @apply border-brand-400 bg-brand-500/10;
+}
+
+/* Metric card */
+.metric-card {
+  @apply bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-6;
+}
+
+/* Rating badges */
+.rating-excellent {
+  @apply bg-green-500/20 text-green-400 border-green-500/30;
+}
+
+.rating-good {
+  @apply bg-blue-500/20 text-blue-400 border-blue-500/30;
+}
+
+.rating-developing {
+  @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/30;
+}
+
+.rating-needs_work {
+  @apply bg-red-500/20 text-red-400 border-red-500/30;
+}
