@@ -27,7 +27,35 @@ AI-powered climbing technique analysis. Upload a bouldering video, get feedback 
 
 ## Quick Start
 
-### Backend
+### Docker (Recommended)
+
+Run the entire stack with a single command:
+
+```bash
+# 1. Set your API key
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+
+# 2. Start everything
+docker compose up
+
+# Or run in background
+docker compose up -d
+```
+
+Open http://localhost:3000
+
+To stop:
+```bash
+docker compose down
+
+# To also remove volumes
+docker compose down -v
+```
+
+### Manual Setup
+
+#### Backend
 
 ```bash
 cd backend
@@ -42,7 +70,7 @@ export ANTHROPIC_API_KEY=your_key_here
 uvicorn main:app --reload
 ```
 
-### Frontend
+#### Frontend
 
 ```bash
 cd frontend

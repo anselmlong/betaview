@@ -1,8 +1,18 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Space_Mono, Bebas_Neue } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const spaceMono = Space_Mono({ 
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  variable: '--font-mono'
+})
+
+const bebasNeue = Bebas_Neue({ 
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-display'
+})
 
 export const metadata: Metadata = {
   title: 'BetaView - AI Climbing Coach',
@@ -16,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${spaceMono.variable} ${bebasNeue.variable}`}>
         <main className="min-h-screen">
           {children}
         </main>

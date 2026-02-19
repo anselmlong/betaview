@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Next.js
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Testing
+coverage/
+.coverage
+*.cover
+.pytest_cache/
+
+# Misc
+*.log
+.ruff_cache/

@@ -106,11 +106,14 @@ class ClimbMetrics:
 # Basic geometry
 # -----------------
 
+
 def euclidean_distance(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
     return float(np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2))
 
 
-def _angle_deg(a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]) -> float:
+def _angle_deg(
+    a: Tuple[float, float], b: Tuple[float, float], c: Tuple[float, float]
+) -> float:
     """Angle ABC in degrees, at point b."""
 
     ba = np.array([a[0] - b[0], a[1] - b[1]], dtype=float)
@@ -140,7 +143,10 @@ def _shannon_entropy(probabilities: List[float]) -> float:
 # Existing metrics
 # -----------------
 
-def calculate_path_efficiency(hip_trajectory: List[Tuple[float, float]]) -> Tuple[float, float, float]:
+
+def calculate_path_efficiency(
+    hip_trajectory: List[Tuple[float, float]],
+) -> Tuple[float, float, float]:
     """Geometric path efficiency (direct / total)."""
 
     if len(hip_trajectory) < 2:
@@ -159,7 +165,9 @@ def calculate_path_efficiency(hip_trajectory: List[Tuple[float, float]]) -> Tupl
     return min(float(efficiency), 1.0), float(total_distance), float(direct_distance)
 
 
-def calculate_velocities(trajectory: List[Tuple[float, float]], timestamps: List[float]) -> List[float]:
+def calculate_velocities(
+    trajectory: List[Tuple[float, float]], timestamps: List[float]
+) -> List[float]:
     velocities: List[float] = []
     for i in range(len(trajectory) - 1):
         dt = timestamps[i + 1] - timestamps[i]
@@ -252,10 +260,14 @@ def detect_settle_events(
                 )
 
                 if is_settle:
-                    post_settle_frames = min(15, len(trajectory) - i - min_settle_frames)
+                    post_settle_frames = min(
+                        15, len(trajectory) - i - min_settle_frames
+                    )
                     if post_settle_frames > 0:
                         post_positions = trajectory[
-                            i + min_settle_frames : i + min_settle_frames + post_settle_frames
+                            i + min_settle_frames : i
+                            + min_settle_frames
+                            + post_settle_frames
                         ]
                         if len(post_positions) > 1:
                             x_coords = [p[0] for p in post_positions]
@@ -309,7 +321,11 @@ def calculate_body_tension(
             sag_count += 1
 
     avg_offset = float(np.mean(alignments))
-    max_expected_offset = 50.0
+
+    all_x_coords = [s[0] for s in shoulder_positions] + [h[0] for h in hip_positions]
+    frame_width_estimate = max(all_x_coords) if all_x_coords else 640.0
+    max_expected_offset = frame_width_estimate * 0.15
+
     tension_score = max(0.0, 1.0 - (avg_offset / max_expected_offset))
 
     return float(tension_score), int(sag_count)
@@ -318,6 +334,7 @@ def calculate_body_tension(
 # -----------------
 # Added heuristics
 # -----------------
+
 
 def calculate_trajectory_entropy(
     hip_trajectory: List[Tuple[float, float]],
@@ -526,6 +543,7 @@ def calculate_com_smoothness(
 # Orchestration
 # -----------------
 
+
 def _extract_trajectories_from_pose_frames(
     pose_keypoints_per_frame: List[Dict[str, Tuple[float, float, float]]],
     timestamps: List[float],
@@ -549,8 +567,14 @@ def _extract_trajectories_from_pose_frames(
 
     shoulder_traj: List[Tuple[float, float]] = []
 
-    ankle_traj: Dict[str, List[Tuple[float, float]]] = {"left_ankle": [], "right_ankle": []}
-    wrist_traj: Dict[str, List[Tuple[float, float]]] = {"left_wrist": [], "right_wrist": []}
+    ankle_traj: Dict[str, List[Tuple[float, float]]] = {
+        "left_ankle": [],
+        "right_ankle": [],
+    }
+    wrist_traj: Dict[str, List[Tuple[float, float]]] = {
+        "left_wrist": [],
+        "right_wrist": [],
+    }
 
     for kp, ts in zip(pose_keypoints_per_frame, timestamps):
         # Hip proxy
@@ -594,7 +618,9 @@ def calculate_all_metrics(
     ankle_trajectories: Optional[Dict[str, List[Tuple[float, float]]]] = None,
     shoulder_positions: Optional[List[Tuple[float, float]]] = None,
     *,
-    pose_keypoints_per_frame: Optional[List[Dict[str, Tuple[float, float, float]]]] = None,
+    pose_keypoints_per_frame: Optional[
+        List[Dict[str, Tuple[float, float, float]]]
+    ] = None,
     pose_timestamps: Optional[List[float]] = None,
 ) -> ClimbMetrics:
     """Calculate all climbing metrics.
@@ -605,8 +631,14 @@ def calculate_all_metrics(
     """
 
     if pose_keypoints_per_frame is not None and pose_timestamps is not None:
-        hip_trajectory, timestamps, ankle_trajectories, shoulder_positions, wrist_traj = (
-            _extract_trajectories_from_pose_frames(pose_keypoints_per_frame, pose_timestamps)
+        (
+            hip_trajectory,
+            timestamps,
+            ankle_trajectories,
+            shoulder_positions,
+            wrist_traj,
+        ) = _extract_trajectories_from_pose_frames(
+            pose_keypoints_per_frame, pose_timestamps
         )
     else:
         wrist_traj = {"left_wrist": [], "right_wrist": []}
@@ -617,17 +649,29 @@ def calculate_all_metrics(
     shoulder_positions = shoulder_positions or []
 
     # Path efficiency
-    path_efficiency, total_distance, direct_distance = calculate_path_efficiency(hip_trajectory)
+    path_efficiency, total_distance, direct_distance = calculate_path_efficiency(
+        hip_trajectory
+    )
 
     # Rhythm
-    velocities = calculate_velocities(hip_trajectory, timestamps) if len(hip_trajectory) == len(timestamps) else []
+    velocities = (
+        calculate_velocities(hip_trajectory, timestamps)
+        if len(hip_trajectory) == len(timestamps)
+        else []
+    )
     phases = classify_movement_phases(velocities, timestamps)
     move_count, avg_pause, rhythm_variance = analyze_rhythm(phases)
 
     # Stability
-    settle_events = detect_settle_events(ankle_trajectories, timestamps) if timestamps else []
-    avg_jitter, clean_placements, total_placements = calculate_stability_score(settle_events)
-    stability_score = clean_placements / total_placements if total_placements > 0 else 1.0
+    settle_events = (
+        detect_settle_events(ankle_trajectories, timestamps) if timestamps else []
+    )
+    avg_jitter, clean_placements, total_placements = calculate_stability_score(
+        settle_events
+    )
+    stability_score = (
+        clean_placements / total_placements if total_placements > 0 else 1.0
+    )
 
     # Body tension
     if pose_keypoints_per_frame is not None and pose_timestamps is not None:
@@ -639,32 +683,40 @@ def calculate_all_metrics(
                 lh = _extract_point(kp, "left_hip")
                 rh = _extract_point(kp, "right_hip")
                 if lh and rh:
-                    hip = ((lh[0] + rh[0])/2.0, (lh[1] + rh[1])/2.0)
+                    hip = ((lh[0] + rh[0]) / 2.0, (lh[1] + rh[1]) / 2.0)
             sh = _extract_point(kp, "mid_shoulder")
             if sh is None:
                 ls = _extract_point(kp, "left_shoulder")
                 rs = _extract_point(kp, "right_shoulder")
                 if ls and rs:
-                    sh = ((ls[0] + rs[0])/2.0, (ls[1] + rs[1])/2.0)
+                    sh = ((ls[0] + rs[0]) / 2.0, (ls[1] + rs[1]) / 2.0)
             if hip is not None and sh is not None:
                 paired_hips.append(hip)
                 paired_shoulders.append(sh)
-        body_tension_score, sag_count = calculate_body_tension(paired_shoulders, paired_hips)
+        body_tension_score, sag_count = calculate_body_tension(
+            paired_shoulders, paired_hips
+        )
     else:
         # Fallback: only compute if lengths align
         if len(shoulder_positions) == len(hip_trajectory):
-            body_tension_score, sag_count = calculate_body_tension(shoulder_positions, hip_trajectory)
+            body_tension_score, sag_count = calculate_body_tension(
+                shoulder_positions, hip_trajectory
+            )
         else:
             body_tension_score, sag_count = 1.0, 0
 
     # Duration
-    climb_duration = float(timestamps[-1] - timestamps[0]) if len(timestamps) >= 2 else 0.0
+    climb_duration = (
+        float(timestamps[-1] - timestamps[0]) if len(timestamps) >= 2 else 0.0
+    )
 
     # Added metrics
     trajectory_entropy = calculate_trajectory_entropy(hip_trajectory)
 
     if pose_keypoints_per_frame is not None:
-        elbow_extension_ratio, shoulder_relax_ratio = calculate_joint_angle_ratios(pose_keypoints_per_frame)
+        elbow_extension_ratio, shoulder_relax_ratio = calculate_joint_angle_ratios(
+            pose_keypoints_per_frame
+        )
     else:
         elbow_extension_ratio, shoulder_relax_ratio = 0.0, 0.0
 
@@ -685,12 +737,18 @@ def calculate_all_metrics(
                 per_frame_wrist.append(p)
                 per_frame_ts.append(float(ts))
             if len(per_frame_wrist) >= 3 and len(per_frame_wrist) == len(per_frame_ts):
-                reach_durations.extend(calculate_reach_durations(per_frame_wrist, per_frame_ts))
+                reach_durations.extend(
+                    calculate_reach_durations(per_frame_wrist, per_frame_ts)
+                )
 
     avg_reach_duration = float(np.mean(reach_durations)) if reach_durations else 0.0
     long_reach_count = int(sum(1 for d in reach_durations if d > 1.0))
 
-    com_smoothness_score = calculate_com_smoothness(hip_trajectory, timestamps) if len(hip_trajectory) == len(timestamps) else 0.0
+    com_smoothness_score = (
+        calculate_com_smoothness(hip_trajectory, timestamps)
+        if len(hip_trajectory) == len(timestamps)
+        else 0.0
+    )
 
     return ClimbMetrics(
         path_efficiency=float(path_efficiency),
