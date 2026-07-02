@@ -192,7 +192,7 @@ class PoseExtractor:
 class VideoProcessor:
     """Processes climbing videos and extracts pose trajectories."""
 
-    def __init__(self, max_duration: float = 120.0):
+    def __init__(self, max_duration: float = 60.0):
         self.max_duration = max_duration
         self.extractor = PoseExtractor()
 

@@ -6,13 +6,17 @@ FastAPI backend for climbing video analysis.
 import os
 import uuid
 import asyncio
+import hashlib
+import time
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 import json
 import gzip
 from contextlib import asynccontextmanager
+from collections import defaultdict, deque
 
+import cv2
 from fastapi import (
     FastAPI,
     UploadFile,
@@ -37,7 +41,11 @@ load_dotenv()
 # Configuration
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/tmp/betaview/uploads"))
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "/tmp/betaview/outputs"))
-MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_VIDEO_DURATION_SECONDS = 60
+UPLOAD_CHUNK_SIZE = 1024 * 1024
+RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "3600"))
+RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("RATE_LIMIT_MAX_REQUESTS", "10"))
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".webm"}
 CLEANUP_AFTER_HOURS = 24
 
@@ -78,8 +86,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory job storage (use Redis for production)
+# In-memory storage (use Redis for production)
 jobs = {}
+coach_feedback_cache = {}
+rate_limit_buckets = defaultdict(deque)
 
 
 class JobStatus(BaseModel):
@@ -90,6 +100,7 @@ class JobStatus(BaseModel):
     metrics: Optional[dict] = None
     feedback: Optional[str] = None
     error: Optional[str] = None
+    video_hash: Optional[str] = None
 
 
 class AnalysisResult(BaseModel):
@@ -113,14 +124,92 @@ async def health():
     return {"status": "healthy"}
 
 
+def get_client_ip(request: Request) -> str:
+    """Return best-effort client IP when running behind a proxy."""
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
+
+
+def enforce_rate_limit(request: Request) -> None:
+    """Limit expensive analysis uploads by client IP."""
+    client_ip = get_client_ip(request)
+    now = time.time()
+    bucket = rate_limit_buckets[client_ip]
+    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+
+    while bucket and bucket[0] < cutoff:
+        bucket.popleft()
+
+    if len(bucket) >= RATE_LIMIT_MAX_REQUESTS:
+        retry_minutes = int((bucket[0] + RATE_LIMIT_WINDOW_SECONDS - now) / 60) + 1
+        raise HTTPException(
+            429,
+            (
+                "Too many upload attempts. "
+                f"Try again in {retry_minutes} minutes."
+            ),
+        )
+
+    bucket.append(now)
+
+
+def probe_video_duration(video_path: Path) -> float:
+    """Read video duration from container metadata before queueing processing."""
+    cap = cv2.VideoCapture(str(video_path))
+    try:
+        if not cap.isOpened():
+            raise HTTPException(400, "Could not read uploaded video")
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        if fps <= 0 or total_frames <= 0:
+            raise HTTPException(400, "Could not determine video duration")
+
+        return float(total_frames / fps)
+    finally:
+        cap.release()
+
+
+async def save_upload_with_hash(file: UploadFile, upload_path: Path) -> tuple[int, str]:
+    """Stream upload to disk while enforcing size and calculating content hash."""
+    total_size = 0
+    digest = hashlib.sha256()
+
+    try:
+        with open(upload_path, "wb") as f:
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
+                total_size += len(chunk)
+                if total_size > MAX_FILE_SIZE:
+                    raise HTTPException(
+                        400,
+                        f"File too large. Max size: {MAX_FILE_SIZE // 1024 // 1024}MB",
+                    )
+                digest.update(chunk)
+                f.write(chunk)
+    except Exception:
+        upload_path.unlink(missing_ok=True)
+        raise
+
+    return total_size, digest.hexdigest()
+
+
 @app.post("/analyze")
 async def analyze_video(
-    background_tasks: BackgroundTasks, file: UploadFile = File(...)
+    background_tasks: BackgroundTasks,
+    request: Request,
+    file: UploadFile = File(...),
 ):
     """
     Upload a climbing video for analysis.
     Returns a job ID to poll for results.
     """
+    enforce_rate_limit(request)
+
     # Validate file
     if not file.filename:
         raise HTTPException(400, "No filename provided")
@@ -136,14 +225,16 @@ async def analyze_video(
     upload_path = UPLOAD_DIR / f"{job_id}{ext}"
 
     try:
-        content = await file.read()
-        if len(content) > MAX_FILE_SIZE:
+        _, video_hash = await save_upload_with_hash(file, upload_path)
+        duration = probe_video_duration(upload_path)
+        if duration > MAX_VIDEO_DURATION_SECONDS:
+            upload_path.unlink(missing_ok=True)
             raise HTTPException(
-                400, f"File too large. Max size: {MAX_FILE_SIZE // 1024 // 1024}MB"
+                400,
+                (
+                    f"Video too long. Max duration: {MAX_VIDEO_DURATION_SECONDS} seconds"
+                ),
             )
-
-        with open(upload_path, "wb") as f:
-            f.write(content)
     except HTTPException:
         raise
     except Exception as e:
@@ -155,15 +246,16 @@ async def analyze_video(
         status="pending",
         progress=0,
         created_at=datetime.now(timezone.utc).isoformat(),
+        video_hash=video_hash,
     )
 
     # Start processing in background
-    background_tasks.add_task(process_job, job_id, str(upload_path))
+    background_tasks.add_task(process_job, job_id, str(upload_path), video_hash)
 
     return {"job_id": job_id, "status": "pending"}
 
 
-async def process_job(job_id: str, video_path: str):
+async def process_job(job_id: str, video_path: str, video_hash: str):
     """Process a video analysis job."""
     job = jobs.get(job_id)
     if not job:
@@ -218,8 +310,11 @@ async def process_job(job_id: str, video_path: str):
         await asyncio.to_thread(create_clean_video, video_path, str(clean_output_path))
         job.progress = 85
 
-        # Generate coach feedback
-        feedback = await asyncio.to_thread(generate_coach_feedback, metrics_dict)
+        # Generate coach feedback, caching Claude responses by source video hash.
+        feedback = coach_feedback_cache.get(video_hash)
+        if feedback is None:
+            feedback = await asyncio.to_thread(generate_coach_feedback, metrics_dict)
+            coach_feedback_cache[video_hash] = feedback
         job.feedback = feedback
         job.progress = 100
 

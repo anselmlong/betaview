@@ -50,7 +50,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
       'video/*': ['.mp4', '.mov', '.avi', '.webm']
     },
     maxFiles: 1,
-    maxSize: 100 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024,
     disabled: uploading,
   })
 
@@ -104,7 +104,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
                 <div className="h-px w-8 bg-current opacity-30" />
               </div>
               <p className="text-[10px] tracking-widest opacity-40 uppercase">
-                MP4 / MOV / AVI / WEBM • Max 100MB
+                MP4 / MOV / AVI / WEBM • Max 50MB / 60s
               </p>
             </div>
           </div>
