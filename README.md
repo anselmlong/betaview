@@ -153,3 +153,15 @@ MIT
 ## Contributing
 
 PRs welcome! Please read CONTRIBUTING.md first.
+# Browser access configuration
+
+Set `CORS_ORIGINS` on the backend to a comma-separated list of exact frontend
+origins, for example `https://your-domain.example`. The default permits only
+local development on port 3000. Do not include paths, trailing slashes or
+wildcards. Browser credentials are disabled because the API does not use cookie
+authentication. Compose forwards this setting from its environment.
+
+CORS controls browser access; it does not authenticate callers or stop direct
+HTTP clients. Existing upload quotas and size limits remain separate controls.
+Run the focused regression tests with `cd backend && python -m unittest
+test_cors_config` after installing FastAPI and httpx.
