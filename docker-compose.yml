@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       - UPLOAD_DIR=/tmp/betaview/uploads
       - OUTPUT_DIR=/tmp/betaview/outputs
     volumes:

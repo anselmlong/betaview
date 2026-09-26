@@ -17,7 +17,13 @@ image = (
 app = modal.App("betaview-api", image=image)
 
 
-@app.function(cpu=4, memory=8192, timeout=900)
+# Exact browser origins allowed by backend/cors_config.py; the default is localhost only.
+cors = modal.Secret.from_dict(
+    {"CORS_ORIGINS": "https://betaview.anselmlong.com,https://betaview.vercel.app"}
+)
+
+
+@app.function(cpu=4, memory=8192, timeout=900, secrets=[cors])
 @modal.asgi_app()
 def fastapi_app():
     sys.path.insert(0, "/root/backend")
