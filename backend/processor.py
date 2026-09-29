@@ -60,7 +60,9 @@ class KalmanSmoother:
         return kf
 
     def smooth(self, keypoint_name: str, x: float, y: float) -> Tuple[float, float]:
-        """Apply Kalman smoothing to a keypoint position."""
+        """Apply Kalman smoothing to a keypoint position.
+        NOTE: predict_all() must be called once per frame BEFORE calling smooth().
+        This method only updates with the measurement — no double-predict."""
         if keypoint_name not in self.filters:
             kf = self._create_filter()
             kf.x = np.array([x, y, 0, 0])
@@ -68,10 +70,16 @@ class KalmanSmoother:
             return x, y
 
         kf = self.filters[keypoint_name]
-        kf.predict()
+        # Already predicted by predict_all(), just update with measurement
         kf.update(np.array([x, y]))
 
         return float(kf.x[0]), float(kf.x[1])
+
+    def predict_all(self):
+        """Advance all tracked keypoint filters one timestep without measurement.
+        Call on every frame to keep filter states current even when keypoints are lost."""
+        for kf in self.filters.values():
+            kf.predict()
 
 
 class PoseExtractor:
@@ -126,19 +134,34 @@ class PoseExtractor:
             running_mode=vision.RunningMode.VIDEO,
             min_pose_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence,
-            num_poses=1,
+            num_poses=5,
             output_segmentation_masks=False,
         )
         self.landmarker = vision.PoseLandmarker.create_from_options(options)
         self.smooth = smooth
         self.smoother = KalmanSmoother() if smooth else None
+        # Cross-frame person tracking: stores normalized keypoints of the tracked climber
+        self._tracked_ref: Optional[dict] = None
 
     def extract_frame(
         self, frame: np.ndarray, frame_id: int, timestamp: float
     ) -> Optional[PoseFrame]:
         """Extract pose from a single frame."""
+        # Advance all Kalman filters (keeps predictions current during tracking gaps)
+        if self.smoother:
+            self.smoother.predict_all()
+
+        # Preprocess: CLAHE contrast enhancement for better MediaPipe tracking
+        # Climbing gyms have uneven lighting — this evens it out dramatically
+        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        l = clahe.apply(l)
+        enhanced = cv2.merge([l, a, b])
+        enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
+
         # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb_frame = cv2.cvtColor(enhanced, cv2.COLOR_BGR2RGB)
 
         # Create MediaPipe Image
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
@@ -148,13 +171,39 @@ class PoseExtractor:
         results = self.landmarker.detect_for_video(mp_image, timestamp_ms)
 
         if not results.pose_landmarks or len(results.pose_landmarks) == 0:
+            self._tracked_ref = None
             return None
 
         h, w = frame.shape[:2]
         keypoints = {}
 
-        # Get first pose (we only detect 1 person)
-        landmarks = results.pose_landmarks[0]
+        # ---- Person selection with cross-frame identity tracking ----
+        if len(results.pose_landmarks) == 1:
+            selected = results.pose_landmarks[0]
+        elif self._tracked_ref is None:
+            # First frame (or tracking lost): pick climber by highest wrists
+            def wrist_height(l):
+                lw = l[self.LANDMARKS["left_wrist"]]
+                rw = l[self.LANDMARKS["right_wrist"]]
+                ly = lw.y if lw.visibility > 0.5 else 1.0
+                ry = rw.y if rw.visibility > 0.5 else 1.0
+                return min(ly, ry)
+            selected = min(results.pose_landmarks, key=wrist_height)
+        else:
+            # Subsequent frames: pick person closest to tracked reference
+            def pose_distance(l):
+                total, count = 0.0, 0
+                for name, (rx, ry) in self._tracked_ref.items():
+                    idx = self.LANDMARKS.get(name)
+                    if idx is not None and l[idx].visibility > 0.5:
+                        dx = l[idx].x - rx
+                        dy = l[idx].y - ry
+                        total += dx * dx + dy * dy
+                        count += 1
+                return total / max(count, 1)
+            selected = min(results.pose_landmarks, key=pose_distance)
+
+        landmarks = selected
 
         for name, idx in self.LANDMARKS.items():
             landmark = landmarks[idx]
@@ -165,6 +214,12 @@ class PoseExtractor:
             # Apply Kalman smoothing
             if self.smoother and visibility > 0.5:
                 x, y = self.smoother.smooth(name, x, y)
+            elif self.smoother and name in self.smoother.filters:
+                # Keypoint was previously tracked but just dropped out:
+                # use the Kalman prediction (coasting with velocity) instead of raw MediaPipe
+                kf = self.smoother.filters[name]
+                x, y = float(kf.x[0]), float(kf.x[1])
+                visibility = 0.5  # marginal visibility — keeps CoG visible & smooth
 
             keypoints[name] = (x, y, visibility)
 
@@ -175,6 +230,12 @@ class PoseExtractor:
         keypoints["mid_shoulder"] = self._midpoint(
             keypoints["left_shoulder"], keypoints["right_shoulder"]
         )
+
+        # Update tracking reference with normalized coords of visible landmarks
+        self._tracked_ref = {}
+        for name, idx in self.LANDMARKS.items():
+            if landmarks[idx].visibility > 0.5:
+                self._tracked_ref[name] = (landmarks[idx].x, landmarks[idx].y)
 
         return PoseFrame(frame_id=frame_id, timestamp=timestamp, keypoints=keypoints)
 

@@ -13,6 +13,7 @@ interface VideoUploadProps {
 export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [personality, setPersonality] = useState<'normal' | 'abusive'>('normal')
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -24,6 +25,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('personality', personality)
 
       const response = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
@@ -42,7 +44,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     } finally {
       setUploading(false)
     }
-  }, [onUploadComplete])
+  }, [onUploadComplete, personality])
 
   const onDropRejected = useCallback((rejections: FileRejection[]) => {
     const code = rejections[0]?.errors[0]?.code
@@ -128,6 +130,35 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Coach personality toggle */}
+      <div className="flex items-center justify-center gap-4">
+        <span className="text-xs tracking-widest opacity-60 uppercase">Coach:</span>
+        <button
+          onClick={() => setPersonality('normal')}
+          className={`px-4 py-2 text-xs tracking-wider border-2 transition-all duration-300 ${
+            personality === 'normal'
+              ? 'border-[rgb(var(--neon-green))] text-[rgb(var(--neon-green))]'
+              : 'border-current opacity-40 hover:opacity-70'
+          }`}
+          style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
+          type="button"
+        >
+          NORMAL
+        </button>
+        <button
+          onClick={() => setPersonality('abusive')}
+          className={`px-4 py-2 text-xs tracking-wider border-2 transition-all duration-300 ${
+            personality === 'abusive'
+              ? 'border-[rgb(var(--neon-pink))] text-[rgb(var(--neon-pink))]'
+              : 'border-current opacity-40 hover:opacity-70'
+          }`}
+          style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
+          type="button"
+        >
+          ABUSIVE
+        </button>
       </div>
 
       {error && (

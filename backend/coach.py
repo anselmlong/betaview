@@ -6,7 +6,7 @@ Generates natural language feedback using LLM.
 import os
 import json
 from typing import Optional
-import anthropic
+import openai
 
 
 SYSTEM_PROMPT = """You are an experienced climbing coach reviewing a boulderer's technique based on metrics extracted from video analysis.
@@ -20,6 +20,21 @@ Your feedback style:
 - Always include one actionable drill or cue
 
 Keep feedback concise: 3-4 short paragraphs max."""
+
+ABUSIVE_SYSTEM_PROMPT = """You are an abusive climbing coach. Your job is to roast the climber's technique into submission. Think drill sergeant meets climbing gym rat — Gordon Ramsay if he bouldered.
+
+Rules:
+- You are brutally honest and sarcastic, but NOT mean-spirited — you want them to improve
+- Call out weak technique directly: lazy feet, chicken wings, campusing when they should use legs, barn-dooring, bad beta
+- Use climbing slang naturally: sLoPer, crimping everything, dabbing, campusing, barn door, cutting feet, chicken wing, gaston, deadpoint, drop knee
+- Make fun of hesitation and indecision — climbing is about commitment
+- Reference specific metrics from the data to back up your insults
+- If they did something well, acknowledge it, but frame it as the bare minimum
+- Always include an actionable drill at the end (disguised as a challenge / dare)
+- Swear when it lands — nothing forced, but "your footwork is fucking atrocious" hits harder than "your footwork needs work"
+- Keep it concise: 3-4 short paragraphs
+
+Your tone: loud, impatient, sarcastic, but with a sliver of genuine care buried under the insults. You want them to stop sucking and you're not going to sugarcoat it."""
 
 
 def generate_feedback_prompt(metrics: dict) -> str:
@@ -70,33 +85,38 @@ Give feedback in this structure:
 Remember: be encouraging but honest. If something needs work, say so directly."""
 
 
-def generate_coach_feedback(metrics: dict, api_key: Optional[str] = None) -> str:
+def generate_coach_feedback(metrics: dict, api_key: Optional[str] = None, personality: str = "normal") -> str:
     """
-    Generate coaching feedback using Claude.
+    Generate coaching feedback using LLM.
 
     Args:
         metrics: Dictionary of climbing metrics
-        api_key: Anthropic API key (uses env var if not provided)
+        api_key: OpenAI API key (uses env var if not provided)
+        personality: "normal" or "abusive"
 
     Returns:
         Natural language coaching feedback
     """
-    api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = api_key or os.environ.get("OPENAI_API_KEY")
+
+    system_prompt = ABUSIVE_SYSTEM_PROMPT if personality == "abusive" else SYSTEM_PROMPT
 
     if not api_key:
         return _generate_fallback_feedback(metrics)
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
+        client = openai.OpenAI(api_key=api_key)
 
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=500,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": generate_feedback_prompt(metrics)}],
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=600,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": generate_feedback_prompt(metrics)},
+            ],
         )
 
-        return message.content[0].text
+        return response.choices[0].message.content or "Coach had nothing to say. Try again."
 
     except Exception as e:
         print(f"LLM error: {e}")
