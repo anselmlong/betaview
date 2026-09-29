@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, FileRejection } from 'react-dropzone'
 import { Upload, Film, AlertCircle, Play } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -44,8 +44,22 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
     }
   }, [onUploadComplete])
 
+  const onDropRejected = useCallback((rejections: FileRejection[]) => {
+    const code = rejections[0]?.errors[0]?.code
+    if (code === 'file-too-large') {
+      setError('File is larger than 50MB. Trim the clip and try again.')
+    } else if (code === 'file-invalid-type') {
+      setError('Unsupported format. Use MP4, MOV, AVI or WEBM.')
+    } else if (code === 'too-many-files') {
+      setError('Drop one video at a time.')
+    } else {
+      setError('That file could not be used. Try another video.')
+    }
+  }, [])
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept: {
       'video/*': ['.mp4', '.mov', '.avi', '.webm']
     },
@@ -57,10 +71,15 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
   return (
     <div className="space-y-6">
       <div
-        {...getRootProps()}
-        className={`upload-zone cursor-pointer relative overflow-hidden ${
+        {...getRootProps({
+          role: 'button',
+          'aria-label': 'Upload climbing video: drop a file or press Enter to browse',
+          'aria-disabled': uploading,
+          'aria-busy': uploading,
+        })}
+        className={`upload-zone focus-inset cursor-pointer relative overflow-hidden ${
           isDragActive ? 'active' : ''
-        } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${uploading ? 'cursor-wait' : ''}`}
       >
         <input {...getInputProps()} />
         
@@ -83,9 +102,9 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
               <div className="w-24 h-24 border-4 border-dashed border-current flex items-center justify-center transition-all duration-300 group-hover:border-[rgb(var(--neon-yellow))]"
                    style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)' }}>
                 {isDragActive ? (
-                  <Film className="w-10 h-10 text-[rgb(var(--neon-pink))]" />
+                  <Film aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-pink))]" />
                 ) : (
-                  <Upload className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform group-hover:scale-110" />
+                  <Upload aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform group-hover:scale-110" />
                 )}
               </div>
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-[rgb(var(--neon-yellow))]" />
@@ -103,7 +122,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
                 </p>
                 <div className="h-px w-8 bg-current opacity-30" />
               </div>
-              <p className="text-[10px] tracking-widest opacity-40 uppercase">
+              <p className="text-[10px] tracking-widest opacity-60 uppercase">
                 MP4 / MOV / AVI / WEBM • Max 50MB / 60s
               </p>
             </div>
@@ -112,15 +131,11 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
       </div>
 
       {error && (
-        <div className="relative border-2 border-[rgb(var(--safety-red))] p-4 animate-slide-up"
-             style={{ 
-               background: 'rgba(220, 38, 38, 0.1)',
-               clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
-             }}>
+        <div role="alert" className="notch relative border-2 border-[rgb(var(--safety-red))] bg-[rgb(var(--safety-red)/0.1)] p-4 animate-slide-up">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-[rgb(var(--safety-red))] flex-shrink-0 mt-0.5" />
+            <AlertCircle aria-hidden="true" className="w-5 h-5 text-[rgb(var(--signal-red))] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-display text-sm tracking-wide text-[rgb(var(--safety-red))] mb-1">
+              <p className="font-display text-sm tracking-wide text-[rgb(var(--signal-red))] mb-1">
                 UPLOAD ERROR
               </p>
               <p className="text-xs opacity-80">{error}</p>

@@ -12,6 +12,8 @@
     --neon-green: 57 255 20;
     --hold-orange: 255 140 0;
     --safety-red: 220 38 38;
+    /* Lighter red for text on concrete (4.5:1+) */
+    --signal-red: 255 107 107;
     
     /* Grain texture */
     --grain-opacity: 0.03;
@@ -63,9 +65,21 @@
   }
 }
 
+/* Browser surfaces */
+::selection {
+  background: rgb(var(--neon-yellow));
+  color: rgb(var(--concrete));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--neon-yellow));
+  outline-offset: 3px;
+}
+
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 3px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -115,30 +129,127 @@
   }
 }
 
-@keyframes draw-border {
-  from {
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
 
 .animate-slide-up {
-  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-in-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-pulse-neon {
   animation: pulse-neon 2s ease-in-out infinite;
 }
 
+/* Rating badge slaps on like a strip of tape once the score lands */
+@keyframes tape-on {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) rotate(-4deg) scale(1.25);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(1deg) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-tape-on {
+  animation: tape-on 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* A finished step lands like a chalked hand: a quick pop and a puff */
+@keyframes chalk-pop {
+  0% {
+    transform: scale(0.4);
+    box-shadow: 0 0 0 0 rgba(245, 245, 240, 0.5);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(245, 245, 240, 0);
+  }
+}
+
+.animate-chalk-pop {
+  animation: chalk-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the reveal, drop the travel */
+  .animate-slide-up,
+  .animate-slide-in-right {
+    animation-name: fade-in;
+    animation-duration: 0.3s;
+  }
+
+  .animate-tape-on {
+    animation-name: fade-in;
+  }
+
+  .animate-pulse-neon,
+  .animate-pulse,
+  .animate-chalk-pop {
+    animation: none;
+  }
+
+  .upload-zone:hover,
+  .upload-zone:focus-visible {
+  border-color: rgb(var(--neon-yellow));
+}
+
+.upload-zone.active {
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer utilities {
+  /* Taped-corner cut: top-right and bottom-left corners clipped by --notch */
+  .notch {
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--notch, 12px)) 0,
+      100% var(--notch, 12px),
+      100% 100%,
+      var(--notch, 12px) 100%,
+      0 calc(100% - var(--notch, 12px))
+    );
+  }
+
+  /* clip-path cuts off outside outlines, so clipped controls draw focus inset */
+  .focus-inset:focus-visible {
+    outline-offset: -6px;
+  }
+}
+
+/* Full-width outlined action (download / reset) */
+.btn-tape {
+  @apply notch flex-1 relative border-[3px] border-current p-4;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, color 0.2s;
+}
+
+.btn-tape:hover {
+  transform: translateX(4px);
+}
+
+.btn-tape:active {
+  transform: translateX(1px);
+}
+
 /* Upload zone styles */
 .upload-zone {
-  @apply relative border-4 border-dashed p-16 transition-all duration-500;
+  @apply relative border-4 border-dashed px-6 py-12 sm:p-16 transition-all duration-500;
   border-color: rgba(255, 255, 240, 0.2);
   background: linear-gradient(135deg, rgba(255, 255, 0, 0.02) 0%, transparent 100%);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
@@ -167,6 +278,10 @@
   transform: translateY(-2px);
 }
 
+.upload-zone:focus-visible {
+  border-color: rgb(var(--neon-yellow));
+}
+
 .upload-zone.active {
   border-color: rgb(var(--neon-pink));
   background: linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, transparent 100%);
@@ -182,27 +297,6 @@
   border-color: rgba(255, 255, 240, 0.15);
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   background: linear-gradient(135deg, rgba(255, 255, 240, 0.03) 0%, transparent 100%);
-}
-
-.metric-card:hover {
-  border-color: rgb(var(--neon-yellow));
-  transform: translateX(3px);
-}
-
-.metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: rgb(var(--neon-yellow));
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.metric-card:hover::before {
-  opacity: 1;
 }
 
 /* Rating badges */
@@ -239,18 +333,13 @@
 .rating-needs_work {
   @apply border-2 font-bold tracking-wide;
   background: rgba(220, 38, 38, 0.15);
-  color: rgb(var(--safety-red));
+  color: rgb(var(--signal-red));
   border-color: rgb(var(--safety-red));
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
 }
 
-/* Accent bars */
-.accent-bar {
-  @apply absolute left-0 w-1 h-full;
-  background: linear-gradient(180deg, rgb(var(--neon-yellow)) 0%, rgb(var(--neon-pink)) 100%);
-}
 
 /* Processing spinner */
 .spinner-neon {

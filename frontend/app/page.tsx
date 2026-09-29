@@ -41,10 +41,9 @@ export default function Home() {
   return (
     <div className="relative min-h-screen">
       <div className="container mx-auto px-6 py-12 max-w-6xl relative z-10">
-        <header className="mb-16 animate-slide-up">
+        <header className="mb-12 sm:mb-16 animate-slide-up">
           <div className="flex items-baseline gap-4 mb-3">
-            <div className="w-3 h-3 bg-[rgb(var(--neon-yellow))] rotate-45" 
-                 style={{ animationDelay: '0.1s' }} />
+            <div aria-hidden="true" className="w-3 h-3 bg-[rgb(var(--neon-yellow))] rotate-45" />
             <h1 className="font-display text-7xl md:text-8xl tracking-tight" 
                 style={{ 
                   background: 'linear-gradient(135deg, rgb(var(--neon-yellow)) 0%, rgb(var(--neon-pink)) 100%)',
@@ -56,8 +55,8 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-3 ml-7">
-            <div className="h-px w-12 bg-[rgb(var(--neon-yellow))]" />
-            <p className="text-sm tracking-widest opacity-60 uppercase">
+            <div aria-hidden="true" className="h-px w-12 bg-[rgb(var(--neon-yellow))]" />
+            <p className="text-sm tracking-widest opacity-70 uppercase">
               Computer Vision Technique Analysis
             </p>
           </div>
@@ -95,9 +94,9 @@ export default function Home() {
                 />
               </div>
 
-              <div className="flex items-center gap-4 pt-8 opacity-40 animate-slide-up" 
+              <div className="flex items-center gap-4 pt-8 opacity-60 animate-slide-up" 
                    style={{ animationDelay: '0.8s' }}>
-                <Mountain className="w-4 h-4" />
+                <Mountain aria-hidden="true" className="w-4 h-4" />
                 <div className="h-px flex-1 bg-current opacity-20" />
                 <p className="text-xs tracking-widest uppercase">
                   Upload • Analyze • Improve
@@ -126,8 +125,8 @@ export default function Home() {
           )}
         </div>
 
-        <footer className="mt-24 pt-8 border-t border-chalk/10 text-center opacity-40">
-          <p className="text-xs tracking-wider uppercase mb-1">
+        <footer className="mt-16 sm:mt-24 pt-8 border-t border-chalk/10 text-center">
+          <p className="text-xs tracking-wider uppercase mb-1 opacity-70">
             Video Auto-Deletion After 24 Hours
           </p>
           <p className="text-[10px] tracking-widest opacity-60">
@@ -136,7 +135,7 @@ export default function Home() {
         </footer>
       </div>
 
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 opacity-20">
+      <div aria-hidden="true" className="fixed top-4 right-4 z-50 flex flex-col gap-2 opacity-20">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="w-2 h-2 border border-current" />
         ))}
@@ -159,19 +158,19 @@ function FeatureCard({
   delay: string
 }) {
   return (
-    <div className="metric-card group animate-slide-in-right" style={{ animationDelay: delay }}>
+    <div className="metric-card animate-slide-in-right" style={{ animationDelay: delay }}>
       <div className="flex items-start justify-between mb-4">
-        <span className="font-display text-5xl opacity-10 leading-none">
+        <span aria-hidden="true" className="font-display text-5xl opacity-10 leading-none">
           {number}
         </span>
-        <div className="text-[rgb(var(--neon-yellow))] transition-transform group-hover:scale-110">
+        <div aria-hidden="true" className="text-[rgb(var(--neon-yellow))]">
           {icon}
         </div>
       </div>
-      <h3 className="font-display text-xl mb-2 tracking-wide">
+      <h2 className="font-display text-xl mb-2 tracking-wide">
         {title}
-      </h3>
-      <p className="text-xs opacity-60 tracking-wide uppercase">
+      </h2>
+      <p className="text-xs opacity-70 tracking-wide uppercase">
         {description}
       </p>
     </div>
