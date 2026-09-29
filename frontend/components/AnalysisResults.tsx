@@ -8,6 +8,10 @@ import {
 import VideoOverlay, { OverlayConfig } from '@/components/VideoOverlay'
 import TogglePanel from '@/components/TogglePanel'
 import { usePoseData } from '@/hooks/usePoseData'
+import { useCountUp } from '@/hooks/useCountUp'
+
+const percent = (n: number) => `${(n * 100).toFixed(0)}%`
+const seconds = (n: number) => `${n.toFixed(1)}s`
 
 interface AnalysisResultsProps {
   data: {
@@ -107,7 +111,8 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
           <MetricCard
             icon={<TrendingUp className="w-6 h-6" />}
             label={formattedMetrics.pathEfficiency.label}
-            value={`${(formattedMetrics.pathEfficiency.value * 100).toFixed(0)}%`}
+            value={formattedMetrics.pathEfficiency.value}
+            format={percent}
             rating={formattedMetrics.pathEfficiency.rating}
             description={formattedMetrics.pathEfficiency.description}
             delay="0.2s"
@@ -115,7 +120,8 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
           <MetricCard
             icon={<Target className="w-6 h-6" />}
             label={formattedMetrics.stability.label}
-            value={`${(formattedMetrics.stability.value * 100).toFixed(0)}%`}
+            value={formattedMetrics.stability.value}
+            format={percent}
             rating={formattedMetrics.stability.rating}
             description={formattedMetrics.stability.description}
             delay="0.3s"
@@ -123,7 +129,8 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
           <MetricCard
             icon={<Activity className="w-6 h-6" />}
             label={formattedMetrics.bodyTension.label}
-            value={`${(formattedMetrics.bodyTension.value * 100).toFixed(0)}%`}
+            value={formattedMetrics.bodyTension.value}
+            format={percent}
             rating={formattedMetrics.bodyTension.rating}
             description={formattedMetrics.bodyTension.description}
             delay="0.4s"
@@ -131,7 +138,8 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
           <MetricCard
             icon={<Timer className="w-6 h-6" />}
             label="Duration"
-            value={`${formattedMetrics.duration.toFixed(1)}s`}
+            value={formattedMetrics.duration}
+            format={seconds}
             subtext={`${formattedMetrics.rhythm.moveCount} moves`}
             delay="0.5s"
           />
@@ -168,6 +176,7 @@ function MetricCard({
   icon, 
   label, 
   value, 
+  format,
   rating, 
   description,
   subtext,
@@ -175,12 +184,16 @@ function MetricCard({
 }: { 
   icon: React.ReactNode
   label: string
-  value: string
+  value: number
+  format: (n: number) => string
   rating?: string
   description?: string
   subtext?: string
   delay: string
 }) {
+  const delayMs = parseFloat(delay) * 1000
+  const shown = useCountUp(value, 900, delayMs + 250)
+
   return (
     <div className="metric-card animate-slide-in-right" style={{ animationDelay: delay }}>
       <div className="flex items-center justify-between mb-4">
@@ -189,9 +202,15 @@ function MetricCard({
           {icon}
         </div>
       </div>
-      <div className="font-display text-5xl mb-3">{value}</div>
+      <div className="font-display text-5xl mb-3 tabular-nums">
+        <span aria-hidden="true">{format(shown)}</span>
+        <span className="sr-only">{format(value)}</span>
+      </div>
       {rating && (
-        <span className={`inline-block px-3 py-1 text-xs rating-${rating}`}>
+        <span
+          className={`inline-block px-3 py-1 text-xs rating-${rating} animate-tape-on`}
+          style={{ animationDelay: `${delayMs + 1000}ms` }}
+        >
           {rating.replace('_', ' ')}
         </span>
       )}

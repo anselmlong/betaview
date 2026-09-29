@@ -139,7 +139,7 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
               >
                 <div aria-hidden="true" className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                   {isComplete ? (
-                    <div className="w-4 h-4 bg-[rgb(var(--neon-green))]" />
+                    <div className="w-4 h-4 bg-[rgb(var(--neon-green))] animate-chalk-pop" />
                   ) : isCurrent ? (
                     <div className="w-4 h-4 border-2 border-[rgb(var(--neon-yellow))] animate-pulse" />
                   ) : (
