@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { 
   Download, RotateCcw, TrendingUp, Target, 
-  Timer, Activity, ChevronRight, Play
+  Timer, Activity, ChevronRight
 } from 'lucide-react'
 import VideoOverlay, { OverlayConfig } from '@/components/VideoOverlay'
 import TogglePanel from '@/components/TogglePanel'
@@ -39,8 +39,7 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="relative border-4 border-current overflow-hidden animate-slide-up"
-               style={{ clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))' }}>
+          <div className="notch [--notch:20px] relative border-4 border-current overflow-hidden animate-slide-up">
             <div className="relative w-full aspect-video bg-[rgb(var(--concrete))]">
               <video
                 ref={videoRef}
@@ -143,8 +142,7 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
         <a
           href={videoUrl}
           download={`betaview_${data.jobId}.mp4`}
-          className="focus-inset flex-1 group relative border-[3px] border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-yellow))] hover:text-[rgb(var(--neon-yellow))]"
-          style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
+          className="btn-tape focus-inset hover:border-[rgb(var(--neon-yellow))] hover:text-[rgb(var(--neon-yellow))]"
         >
           <div className="flex items-center justify-center gap-3">
             <Download aria-hidden="true" className="w-5 h-5" />
@@ -154,8 +152,7 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
         <button
           type="button"
           onClick={onReset}
-          className="focus-inset flex-1 group relative border-[3px] border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-pink))] hover:text-[rgb(var(--neon-pink))]"
-          style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
+          className="btn-tape focus-inset hover:border-[rgb(var(--neon-pink))] hover:text-[rgb(var(--neon-pink))]"
         >
           <div className="flex items-center justify-center gap-3">
             <RotateCcw aria-hidden="true" className="w-5 h-5" />

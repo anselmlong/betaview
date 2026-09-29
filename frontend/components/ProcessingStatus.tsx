@@ -67,11 +67,8 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
 
   return (
     <div className="max-w-2xl mx-auto animate-slide-up">
-      <div className="relative px-6 py-10 sm:p-12 border-4 border-current"
-           style={{ 
-             clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px))',
-             background: 'linear-gradient(135deg, rgba(255, 255, 0, 0.02) 0%, transparent 100%)'
-           }}>
+      <div className="notch [--notch:24px] relative px-6 py-10 sm:p-12 border-4 border-current"
+           style={{ background: 'linear-gradient(135deg, rgba(255, 255, 0, 0.02) 0%, transparent 100%)' }}>
         
         <div className="flex justify-center mb-12">
           <div
@@ -102,7 +99,7 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
               />
             </svg>
             <div aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="font-display text-6xl mb-1" 
+              <div className="font-display text-6xl mb-1 tabular-nums" 
                    style={{
                      background: 'linear-gradient(135deg, rgb(var(--neon-yellow)) 0%, rgb(var(--neon-pink)) 100%)',
                      WebkitBackgroundClip: 'text',

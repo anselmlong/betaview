@@ -79,7 +79,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         })}
         className={`upload-zone focus-inset cursor-pointer relative overflow-hidden ${
           isDragActive ? 'active' : ''
-        } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${uploading ? 'cursor-wait' : ''}`}
       >
         <input {...getInputProps()} />
         
@@ -131,11 +131,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
       </div>
 
       {error && (
-        <div role="alert" className="relative border-2 border-[rgb(var(--safety-red))] p-4 animate-slide-up"
-             style={{ 
-               background: 'rgba(220, 38, 38, 0.1)',
-               clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
-             }}>
+        <div role="alert" className="notch relative border-2 border-[rgb(var(--safety-red))] bg-[rgb(var(--safety-red)/0.1)] p-4 animate-slide-up">
           <div className="flex items-start gap-3">
             <AlertCircle aria-hidden="true" className="w-5 h-5 text-[rgb(var(--signal-red))] flex-shrink-0 mt-0.5" />
             <div className="flex-1">

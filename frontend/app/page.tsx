@@ -41,7 +41,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen">
       <div className="container mx-auto px-6 py-12 max-w-6xl relative z-10">
-        <header className="mb-16 animate-slide-up">
+        <header className="mb-12 sm:mb-16 animate-slide-up">
           <div className="flex items-baseline gap-4 mb-3">
             <div aria-hidden="true" className="w-3 h-3 bg-[rgb(var(--neon-yellow))] rotate-45" />
             <h1 className="font-display text-7xl md:text-8xl tracking-tight" 
@@ -125,7 +125,7 @@ export default function Home() {
           )}
         </div>
 
-        <footer className="mt-24 pt-8 border-t border-chalk/10 text-center">
+        <footer className="mt-16 sm:mt-24 pt-8 border-t border-chalk/10 text-center">
           <p className="text-xs tracking-wider uppercase mb-1 opacity-70">
             Video Auto-Deletion After 24 Hours
           </p>

@@ -28,11 +28,11 @@ export default function TogglePanel({ config, onChange }: TogglePanelProps) {
     <div
       role="group"
       aria-labelledby="overlay-toggles-label"
-      className="toggle-panel relative sm:absolute sm:top-4 sm:right-4 z-10 p-3 border-t-4 sm:border-2 border-current bg-[rgb(var(--concrete))]"
+      className="sm:notch [--notch:8px] relative sm:absolute sm:top-4 sm:right-4 z-10 p-3 border-t-4 sm:border-2 border-current bg-[rgb(var(--concrete))]"
     >
       <div
         id="overlay-toggles-label"
-        className="text-[10px] tracking-widest opacity-70 uppercase mb-2 font-display"
+        className="text-xs tracking-widest opacity-70 uppercase mb-2 font-display"
       >
         Overlays
       </div>

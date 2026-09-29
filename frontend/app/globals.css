@@ -76,14 +76,10 @@
   outline-offset: 3px;
 }
 
-/* clip-path cuts off outside outlines, so clipped controls draw focus inset */
-.focus-inset:focus-visible {
-  outline-offset: -6px;
-}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 3px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -133,14 +129,6 @@
   }
 }
 
-@keyframes draw-border {
-  from {
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
 
 .animate-slide-up {
   animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -168,7 +156,11 @@
   }
 
   .upload-zone:hover,
-  .upload-zone.active {
+  .upload-zone:focus-visible {
+  border-color: rgb(var(--neon-yellow));
+}
+
+.upload-zone.active {
     transform: none;
   }
 }
@@ -176,6 +168,39 @@
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@layer utilities {
+  /* Taped-corner cut: top-right and bottom-left corners clipped by --notch */
+  .notch {
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--notch, 12px)) 0,
+      100% var(--notch, 12px),
+      100% 100%,
+      var(--notch, 12px) 100%,
+      0 calc(100% - var(--notch, 12px))
+    );
+  }
+
+  /* clip-path cuts off outside outlines, so clipped controls draw focus inset */
+  .focus-inset:focus-visible {
+    outline-offset: -6px;
+  }
+}
+
+/* Full-width outlined action (download / reset) */
+.btn-tape {
+  @apply notch flex-1 relative border-[3px] border-current p-4;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, color 0.2s;
+}
+
+.btn-tape:hover {
+  transform: translateX(4px);
+}
+
+.btn-tape:active {
+  transform: translateX(1px);
 }
 
 /* Upload zone styles */
@@ -207,6 +232,10 @@
 .upload-zone:hover {
   border-color: rgb(var(--neon-yellow));
   transform: translateY(-2px);
+}
+
+.upload-zone:focus-visible {
+  border-color: rgb(var(--neon-yellow));
 }
 
 .upload-zone.active {
@@ -267,22 +296,10 @@
   letter-spacing: 0.1em;
 }
 
-/* Accent bars */
-.accent-bar {
-  @apply absolute left-0 w-1 h-full;
-  background: linear-gradient(180deg, rgb(var(--neon-yellow)) 0%, rgb(var(--neon-pink)) 100%);
-}
 
 /* Processing spinner */
 .spinner-neon {
   @apply w-16 h-16 border-4 rounded-full animate-spin;
   border-color: rgb(var(--neon-yellow));
   border-top-color: transparent;
-}
-
-/* Overlay toggles float over the video from sm up */
-@media (min-width: 640px) {
-  .toggle-panel {
-    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-  }
 }
