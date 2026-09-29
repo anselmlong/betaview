@@ -35,6 +35,11 @@ npm-debug.log*
 coverage/
 .pytest_cache/
 
+# Benchmark videos (83MB test data, not source)
+backend/benchmark_videos/
+backend/*_annotated.mp4
+backend/*_poseframes.pkl
+
 # Uploads (local dev)
 /tmp/betaview/
 

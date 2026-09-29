@@ -101,6 +101,7 @@ class JobStatus(BaseModel):
     feedback: Optional[str] = None
     error: Optional[str] = None
     video_hash: Optional[str] = None
+    personality: str = "normal"
 
 
 class AnalysisResult(BaseModel):
@@ -203,12 +204,17 @@ async def analyze_video(
     background_tasks: BackgroundTasks,
     request: Request,
     file: UploadFile = File(...),
+    personality: str = "normal",
 ):
     """
     Upload a climbing video for analysis.
     Returns a job ID to poll for results.
     """
     enforce_rate_limit(request)
+
+    # Validate personality
+    if personality not in ("normal", "abusive"):
+        raise HTTPException(400, "Personality must be 'normal' or 'abusive'")
 
     # Validate file
     if not file.filename:
@@ -247,12 +253,13 @@ async def analyze_video(
         progress=0,
         created_at=datetime.now(timezone.utc).isoformat(),
         video_hash=video_hash,
+        personality=personality,
     )
 
     # Start processing in background
     background_tasks.add_task(process_job, job_id, str(upload_path), video_hash)
 
-    return {"job_id": job_id, "status": "pending"}
+    return {"job_id": job_id, "status": "pending", "personality": personality}
 
 
 async def process_job(job_id: str, video_path: str, video_hash: str):
@@ -310,11 +317,13 @@ async def process_job(job_id: str, video_path: str, video_hash: str):
         await asyncio.to_thread(create_clean_video, video_path, str(clean_output_path))
         job.progress = 85
 
-        # Generate coach feedback, caching Claude responses by source video hash.
-        feedback = coach_feedback_cache.get(video_hash)
+        # Generate coach feedback, caching Claude responses by source video hash + personality.
+        personality = getattr(job, 'personality', 'normal')
+        cache_key = f"{video_hash}:{personality}"
+        feedback = coach_feedback_cache.get(cache_key)
         if feedback is None:
-            feedback = await asyncio.to_thread(generate_coach_feedback, metrics_dict)
-            coach_feedback_cache[video_hash] = feedback
+            feedback = await asyncio.to_thread(generate_coach_feedback, metrics_dict, None, personality)
+            coach_feedback_cache[cache_key] = feedback
         job.feedback = feedback
         job.progress = 100
 

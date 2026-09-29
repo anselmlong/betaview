@@ -9,3 +9,4 @@ httpx==0.27.2
 boto3==1.34.34
 python-dotenv==1.0.1
 filterpy==1.4.5
+openai==3.20.0
