@@ -49,24 +49,25 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
                 className="w-full h-full"
                 crossOrigin="anonymous"
                 preload="metadata"
+                aria-label="Your climb with pose overlays"
               />
               {poseData && (
-                <>
-                  <VideoOverlay
-                    videoRef={videoRef}
-                    poseData={poseData}
-                    config={overlayConfig}
-                    width={poseData.width}
-                    height={poseData.height}
-                  />
-                  <TogglePanel
-                    config={overlayConfig}
-                    onChange={setOverlayConfig}
-                  />
-                </>
+                <VideoOverlay
+                  videoRef={videoRef}
+                  poseData={poseData}
+                  config={overlayConfig}
+                  width={poseData.width}
+                  height={poseData.height}
+                />
               )}
             </div>
-            <div className="absolute top-4 left-4 flex gap-2">
+            {poseData && (
+              <TogglePanel
+                config={overlayConfig}
+                onChange={setOverlayConfig}
+              />
+            )}
+            <div aria-hidden="true" className="absolute top-4 left-4 flex gap-2 pointer-events-none">
               <div className="w-3 h-3 bg-[rgb(var(--safety-red))]" />
               <div className="w-3 h-3 bg-[rgb(var(--neon-yellow))]" />
               <div className="w-3 h-3 bg-[rgb(var(--neon-green))]" />
@@ -74,22 +75,25 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
           </div>
 
           <div className="metric-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <button
-              onClick={() => setShowFeedback(!showFeedback)}
-              className="w-full flex items-center justify-between text-left group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 border-2 border-[rgb(var(--neon-yellow))] flex items-center justify-center">
+            <h2>
+              <button
+                type="button"
+                onClick={() => setShowFeedback(!showFeedback)}
+                aria-expanded={showFeedback}
+                aria-controls="coach-feedback"
+                className="focus-inset w-full flex items-center gap-3 text-left group"
+              >
+                <span aria-hidden="true" className="w-8 h-8 border-2 border-[rgb(var(--neon-yellow))] flex items-center justify-center transition-colors group-hover:bg-[rgb(var(--neon-yellow))] group-hover:text-[rgb(var(--concrete))]">
                   <ChevronRight className={`w-4 h-4 transition-transform ${showFeedback ? 'rotate-90' : ''}`} />
-                </div>
-                <h3 className="font-display text-2xl tracking-wide">
+                </span>
+                <span className="font-display text-2xl tracking-wide">
                   COACH FEEDBACK
-                </h3>
-              </div>
-            </button>
+                </span>
+              </button>
+            </h2>
             
             {showFeedback && (
-              <div className="mt-6 space-y-4 pl-11 animate-slide-up">
+              <div id="coach-feedback" className="mt-6 space-y-4 sm:pl-11 max-w-prose animate-slide-up">
                 {feedback.split('\n\n').map((paragraph, i) => (
                   <p key={i} className="text-sm leading-relaxed opacity-80">
                     {paragraph}
@@ -139,21 +143,22 @@ export default function AnalysisResults({ data, onReset }: AnalysisResultsProps)
         <a
           href={videoUrl}
           download={`betaview_${data.jobId}.mp4`}
-          className="flex-1 group relative border-3 border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-yellow))]"
+          className="focus-inset flex-1 group relative border-[3px] border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-yellow))] hover:text-[rgb(var(--neon-yellow))]"
           style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
         >
           <div className="flex items-center justify-center gap-3">
-            <Download className="w-5 h-5" />
+            <Download aria-hidden="true" className="w-5 h-5" />
             <span className="font-display text-lg tracking-wide">DOWNLOAD VIDEO</span>
           </div>
         </a>
         <button
+          type="button"
           onClick={onReset}
-          className="flex-1 group relative border-3 border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-pink))]"
+          className="focus-inset flex-1 group relative border-[3px] border-current p-4 transition-all duration-300 hover:translate-x-1 hover:border-[rgb(var(--neon-pink))] hover:text-[rgb(var(--neon-pink))]"
           style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
         >
           <div className="flex items-center justify-center gap-3">
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw aria-hidden="true" className="w-5 h-5" />
             <span className="font-display text-lg tracking-wide">ANALYZE ANOTHER</span>
           </div>
         </button>
@@ -180,10 +185,10 @@ function MetricCard({
   delay: string
 }) {
   return (
-    <div className="metric-card group animate-slide-in-right" style={{ animationDelay: delay }}>
+    <div className="metric-card animate-slide-in-right" style={{ animationDelay: delay }}>
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] tracking-widest opacity-40 uppercase">{label}</span>
-        <div className="text-[rgb(var(--neon-yellow))]">
+        <h3 className="text-[10px] tracking-widest opacity-70 uppercase">{label}</h3>
+        <div aria-hidden="true" className="text-[rgb(var(--neon-yellow))]">
           {icon}
         </div>
       </div>
@@ -194,14 +199,10 @@ function MetricCard({
         </span>
       )}
       {subtext && (
-        <p className="text-xs mt-3 opacity-50 uppercase tracking-wider">{subtext}</p>
+        <p className="text-xs mt-3 opacity-70 uppercase tracking-wider">{subtext}</p>
       )}
-      
       {description && (
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full ml-4 px-4 py-3 border-2 border-current bg-[rgb(var(--concrete))] text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20"
-             style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}>
-          {description}
-        </div>
+        <p className="text-xs mt-4 leading-relaxed opacity-70">{description}</p>
       )}
     </div>
   )

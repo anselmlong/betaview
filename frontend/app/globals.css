@@ -12,6 +12,8 @@
     --neon-green: 57 255 20;
     --hold-orange: 255 140 0;
     --safety-red: 220 38 38;
+    /* Lighter red for text on concrete (4.5:1+) */
+    --signal-red: 255 107 107;
     
     /* Grain texture */
     --grain-opacity: 0.03;
@@ -61,6 +63,22 @@
       rgba(255, 255, 240, 0.1) 100px
     );
   }
+}
+
+/* Browser surfaces */
+::selection {
+  background: rgb(var(--neon-yellow));
+  color: rgb(var(--concrete));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--neon-yellow));
+  outline-offset: 3px;
+}
+
+/* clip-path cuts off outside outlines, so clipped controls draw focus inset */
+.focus-inset:focus-visible {
+  outline-offset: -6px;
 }
 
 /* Custom scrollbar */
@@ -125,20 +143,44 @@
 }
 
 .animate-slide-up {
-  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-in-right 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-pulse-neon {
   animation: pulse-neon 2s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the reveal, drop the travel */
+  .animate-slide-up,
+  .animate-slide-in-right {
+    animation-name: fade-in;
+    animation-duration: 0.3s;
+  }
+
+  .animate-pulse-neon,
+  .animate-pulse {
+    animation: none;
+  }
+
+  .upload-zone:hover,
+  .upload-zone.active {
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Upload zone styles */
 .upload-zone {
-  @apply relative border-4 border-dashed p-16 transition-all duration-500;
+  @apply relative border-4 border-dashed px-6 py-12 sm:p-16 transition-all duration-500;
   border-color: rgba(255, 255, 240, 0.2);
   background: linear-gradient(135deg, rgba(255, 255, 0, 0.02) 0%, transparent 100%);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
@@ -184,27 +226,6 @@
   background: linear-gradient(135deg, rgba(255, 255, 240, 0.03) 0%, transparent 100%);
 }
 
-.metric-card:hover {
-  border-color: rgb(var(--neon-yellow));
-  transform: translateX(3px);
-}
-
-.metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: rgb(var(--neon-yellow));
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.metric-card:hover::before {
-  opacity: 1;
-}
-
 /* Rating badges */
 .rating-excellent {
   @apply border-2 font-bold tracking-wide;
@@ -239,7 +260,7 @@
 .rating-needs_work {
   @apply border-2 font-bold tracking-wide;
   background: rgba(220, 38, 38, 0.15);
-  color: rgb(var(--safety-red));
+  color: rgb(var(--signal-red));
   border-color: rgb(var(--safety-red));
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -257,4 +278,11 @@
   @apply w-16 h-16 border-4 rounded-full animate-spin;
   border-color: rgb(var(--neon-yellow));
   border-top-color: transparent;
+}
+
+/* Overlay toggles float over the video from sm up */
+@media (min-width: 640px) {
+  .toggle-panel {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
 }

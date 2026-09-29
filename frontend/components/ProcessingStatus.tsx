@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Square, Check } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -68,15 +67,23 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
 
   return (
     <div className="max-w-2xl mx-auto animate-slide-up">
-      <div className="relative p-12 border-4 border-current"
+      <div className="relative px-6 py-10 sm:p-12 border-4 border-current"
            style={{ 
              clipPath: 'polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px))',
              background: 'linear-gradient(135deg, rgba(255, 255, 0, 0.02) 0%, transparent 100%)'
            }}>
         
         <div className="flex justify-center mb-12">
-          <div className="relative">
-            <svg className="w-48 h-48 transform -rotate-90">
+          <div
+            className="relative"
+            role="progressbar"
+            aria-label="Analysis progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress}
+            aria-valuetext={`${progress}% · ${STEPS[currentStepIndex]?.label.toLowerCase() ?? 'finishing'}`}
+          >
+            <svg aria-hidden="true" className="w-48 h-48 transform -rotate-90">
               <circle
                 cx="96"
                 cy="96"
@@ -94,7 +101,7 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
                 strokeLinecap="square"
               />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="font-display text-6xl mb-1" 
                    style={{
                      background: 'linear-gradient(135deg, rgb(var(--neon-yellow)) 0%, rgb(var(--neon-pink)) 100%)',
@@ -104,31 +111,36 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
                    }}>
                 {progress}
               </div>
-              <div className="text-[10px] tracking-widest opacity-40">PERCENT</div>
+              <div className="text-[10px] tracking-widest opacity-60">PERCENT</div>
             </div>
             
-            <div className="absolute top-0 left-0 w-3 h-3 bg-[rgb(var(--neon-yellow))] animate-pulse-neon" />
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-[rgb(var(--neon-pink))]" />
+            <div aria-hidden="true" className="absolute top-0 left-0 w-3 h-3 bg-[rgb(var(--neon-yellow))] animate-pulse-neon" />
+            <div aria-hidden="true" className="absolute bottom-0 right-0 w-3 h-3 bg-[rgb(var(--neon-pink))]" />
           </div>
         </div>
 
-        <div className="space-y-1 mb-8">
+        <p className="sr-only" aria-live="polite">
+          {STEPS[currentStepIndex]?.label.toLowerCase()}
+        </p>
+
+        <ol className="space-y-1 mb-8">
           {STEPS.map((step, index) => {
             const isComplete = progress >= (STEPS[index + 1]?.threshold ?? 100)
             const isCurrent = index === currentStepIndex
 
             return (
-              <div
+              <li
                 key={step.id}
+                aria-current={isCurrent ? 'step' : undefined}
                 className={`flex items-center gap-4 p-3 transition-all duration-300 ${
                   isCurrent ? 'translate-x-2' : ''
                 }`}
                 style={{
-                  opacity: index > currentStepIndex ? 0.3 : 1,
+                  opacity: index > currentStepIndex ? 0.55 : 1,
                   borderLeft: isCurrent ? '3px solid rgb(var(--neon-yellow))' : '3px solid transparent'
                 }}
               >
-                <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                <div aria-hidden="true" className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                   {isComplete ? (
                     <div className="w-4 h-4 bg-[rgb(var(--neon-green))]" />
                   ) : isCurrent ? (
@@ -142,17 +154,17 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
                 }`}>
                   {step.label}
                 </span>
-              </div>
+              </li>
             )
           })}
-        </div>
+        </ol>
 
-        <div className="flex items-center justify-center gap-4 pt-6 border-t border-current opacity-30">
-          <div className="h-px w-12 bg-current" />
-          <p className="text-[10px] tracking-widest">
+        <div className="flex items-center justify-center gap-4 pt-6 border-t border-chalk/20">
+          <div aria-hidden="true" className="hidden sm:block h-px w-12 bg-current opacity-30" />
+          <p className="text-[10px] tracking-widest opacity-60 text-center">
             ESTIMATED TIME: 30-60 SECONDS
           </p>
-          <div className="h-px w-12 bg-current" />
+          <div aria-hidden="true" className="hidden sm:block h-px w-12 bg-current opacity-30" />
         </div>
       </div>
     </div>
