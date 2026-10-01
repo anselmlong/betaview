@@ -21,8 +21,10 @@ export default function Home() {
   const [state, setState] = useState<AppState>('upload')
   const [jobId, setJobId] = useState<string | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
+  const [processingError, setProcessingError] = useState<string | null>(null)
 
   const handleUploadComplete = (id: string) => {
+    setProcessingError(null)
     setJobId(id)
     setState('processing')
   }
@@ -66,7 +68,7 @@ export default function Home() {
           {state === 'upload' && (
             <>
               <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                <VideoUpload onUploadComplete={handleUploadComplete} />
+                <VideoUpload onUploadComplete={handleUploadComplete} initialError={processingError} />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-up" 
@@ -111,8 +113,8 @@ export default function Home() {
               jobId={jobId}
               onComplete={handleProcessingComplete}
               onError={(error) => {
-                alert(error)
                 handleReset()
+                setProcessingError(error)
               }}
             />
           )}
