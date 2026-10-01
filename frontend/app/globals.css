@@ -14,6 +14,8 @@
     --safety-red: 220 38 38;
     /* Lighter red for text on concrete (4.5:1+) */
     --signal-red: 255 107 107;
+    /* Lighter pink for small text on concrete (4.5:1+) */
+    --signal-pink: 255 110 190;
     
     /* Grain texture */
     --grain-opacity: 0.03;
@@ -181,6 +183,22 @@
   animation: chalk-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Coach hint swaps in from below, like a line written under the last */
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-hint-in {
+  animation: hint-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Keep the reveal, drop the travel */
   .animate-slide-up,
@@ -189,7 +207,8 @@
     animation-duration: 0.3s;
   }
 
-  .animate-tape-on {
+  .animate-tape-on,
+  .animate-hint-in {
     animation-name: fade-in;
   }
 
@@ -199,12 +218,7 @@
     animation: none;
   }
 
-  .upload-zone:hover,
-  .upload-zone:focus-visible {
-  border-color: rgb(var(--neon-yellow));
-}
-
-.upload-zone.active {
+  .upload-zone:hover {
     transform: none;
   }
 }
@@ -280,6 +294,11 @@
 
 .upload-zone:focus-visible {
   border-color: rgb(var(--neon-yellow));
+}
+
+/* While uploading the zone is busy, not a target: no lift */
+.upload-zone[aria-disabled='true']:hover {
+  transform: none;
 }
 
 .upload-zone.active {

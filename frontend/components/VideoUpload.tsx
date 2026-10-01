@@ -6,20 +6,41 @@ import { Upload, Film, AlertCircle, Play } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+type Personality = 'normal' | 'abusive'
+
+const COACHES: { id: Personality; label: string; hint: string; tone: { border: string; text: string } }[] = [
+  {
+    id: 'normal',
+    label: 'NORMAL',
+    hint: 'Encouraging, direct technique notes',
+    tone: { border: 'border-[rgb(var(--neon-green))]', text: 'text-[rgb(var(--neon-green))]' },
+  },
+  {
+    id: 'abusive',
+    label: 'ABUSIVE',
+    hint: 'A brutal roast. Swearing included.',
+    tone: { border: 'border-[rgb(var(--neon-pink))]', text: 'text-[rgb(var(--signal-pink))]' },
+  },
+]
+
 interface VideoUploadProps {
   onUploadComplete: (jobId: string) => void
+  initialError?: string | null
 }
 
-export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
+export default function VideoUpload({ onUploadComplete, initialError = null }: VideoUploadProps) {
   const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [personality, setPersonality] = useState<'normal' | 'abusive'>('normal')
+  const [error, setError] = useState<string | null>(initialError)
+  // A failure handed back from processing is not an upload problem; title it accordingly
+  const [errorTitle, setErrorTitle] = useState(initialError ? 'ANALYSIS FAILED' : 'UPLOAD ERROR')
+  const [personality, setPersonality] = useState<Personality>('normal')
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return
 
     setError(null)
+    setErrorTitle('UPLOAD ERROR')
     setUploading(true)
 
     try {
@@ -47,6 +68,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
   }, [onUploadComplete, personality])
 
   const onDropRejected = useCallback((rejections: FileRejection[]) => {
+    setErrorTitle('UPLOAD ERROR')
     const code = rejections[0]?.errors[0]?.code
     if (code === 'file-too-large') {
       setError('File is larger than 50MB. Trim the clip and try again.')
@@ -79,7 +101,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
           'aria-disabled': uploading,
           'aria-busy': uploading,
         })}
-        className={`upload-zone focus-inset cursor-pointer relative overflow-hidden ${
+        className={`upload-zone group focus-inset cursor-pointer relative overflow-hidden ${
           isDragActive ? 'active' : ''
         } ${uploading ? 'cursor-wait' : ''}`}
       >
@@ -100,13 +122,13 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-8">
-            <div className="relative group">
-              <div className="w-24 h-24 border-4 border-dashed border-current flex items-center justify-center transition-all duration-300 group-hover:border-[rgb(var(--neon-yellow))]"
+            <div className="relative">
+              <div className="w-24 h-24 border-4 border-dashed border-current flex items-center justify-center transition-colors duration-300 group-hover:border-[rgb(var(--neon-yellow))] group-focus-visible:border-[rgb(var(--neon-yellow))]"
                    style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)' }}>
                 {isDragActive ? (
                   <Film aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-pink))]" />
                 ) : (
-                  <Upload aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform group-hover:scale-110" />
+                  <Upload aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110" />
                 )}
               </div>
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-[rgb(var(--neon-yellow))]" />
@@ -133,32 +155,38 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
       </div>
 
       {/* Coach personality toggle */}
-      <div className="flex items-center justify-center gap-4">
-        <span className="text-xs tracking-widest opacity-60 uppercase">Coach:</span>
-        <button
-          onClick={() => setPersonality('normal')}
-          className={`px-4 py-2 text-xs tracking-wider border-2 transition-all duration-300 ${
-            personality === 'normal'
-              ? 'border-[rgb(var(--neon-green))] text-[rgb(var(--neon-green))]'
-              : 'border-current opacity-40 hover:opacity-70'
+      <div className="flex flex-col items-center gap-3">
+        <div role="group" aria-labelledby="coach-label" className="flex items-center justify-center gap-3 sm:gap-4">
+          <span id="coach-label" className="text-xs tracking-widest opacity-70 uppercase">Coach:</span>
+          {COACHES.map(({ id, label, tone }) => {
+            const isActive = personality === id
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={isActive}
+                aria-describedby={isActive ? 'coach-hint' : undefined}
+                onClick={() => setPersonality(id)}
+                className={`notch [--notch:8px] focus-inset min-h-[44px] px-4 text-xs tracking-wider border-2 transition-colors duration-200 ${
+                  isActive
+                    ? `${tone.border} ${tone.text} animate-tape-on`
+                    : 'border-chalk/30 text-chalk/70 hover:border-chalk/60 hover:text-chalk'
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <p
+          id="coach-hint"
+          key={personality}
+          className={`text-[10px] tracking-widest uppercase animate-hint-in ${
+            personality === 'abusive' ? 'text-[rgb(var(--signal-pink))]' : 'text-chalk/70'
           }`}
-          style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
-          type="button"
         >
-          NORMAL
-        </button>
-        <button
-          onClick={() => setPersonality('abusive')}
-          className={`px-4 py-2 text-xs tracking-wider border-2 transition-all duration-300 ${
-            personality === 'abusive'
-              ? 'border-[rgb(var(--neon-pink))] text-[rgb(var(--neon-pink))]'
-              : 'border-current opacity-40 hover:opacity-70'
-          }`}
-          style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
-          type="button"
-        >
-          ABUSIVE
-        </button>
+          {COACHES.find((c) => c.id === personality)?.hint}
+        </p>
       </div>
 
       {error && (
@@ -167,7 +195,7 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
             <AlertCircle aria-hidden="true" className="w-5 h-5 text-[rgb(var(--signal-red))] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-display text-sm tracking-wide text-[rgb(var(--signal-red))] mb-1">
-                UPLOAD ERROR
+                {errorTitle}
               </p>
               <p className="text-xs opacity-80">{error}</p>
             </div>
