@@ -58,7 +58,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3 ml-7">
             <div aria-hidden="true" className="h-px w-12 bg-[rgb(var(--neon-yellow))]" />
-            <p className="text-sm tracking-widest opacity-70 uppercase">
+            <p className="text-sm tracking-widest opacity-70 uppercase text-balance">
               Computer Vision Technique Analysis
             </p>
           </div>

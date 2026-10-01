@@ -101,7 +101,7 @@ export default function VideoUpload({ onUploadComplete, initialError = null }: V
           'aria-disabled': uploading,
           'aria-busy': uploading,
         })}
-        className={`upload-zone focus-inset cursor-pointer relative overflow-hidden ${
+        className={`upload-zone group focus-inset cursor-pointer relative overflow-hidden ${
           isDragActive ? 'active' : ''
         } ${uploading ? 'cursor-wait' : ''}`}
       >
@@ -122,13 +122,13 @@ export default function VideoUpload({ onUploadComplete, initialError = null }: V
           </div>
         ) : (
           <div className="flex flex-col items-center gap-8">
-            <div className="relative group">
-              <div className="w-24 h-24 border-4 border-dashed border-current flex items-center justify-center transition-all duration-300 group-hover:border-[rgb(var(--neon-yellow))]"
+            <div className="relative">
+              <div className="w-24 h-24 border-4 border-dashed border-current flex items-center justify-center transition-colors duration-300 group-hover:border-[rgb(var(--neon-yellow))] group-focus-visible:border-[rgb(var(--neon-yellow))]"
                    style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)' }}>
                 {isDragActive ? (
                   <Film aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-pink))]" />
                 ) : (
-                  <Upload aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform group-hover:scale-110" />
+                  <Upload aria-hidden="true" className="w-10 h-10 text-[rgb(var(--neon-yellow))] transition-transform duration-300 group-hover:scale-110 group-focus-visible:scale-110" />
                 )}
               </div>
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-[rgb(var(--neon-yellow))]" />
