@@ -169,7 +169,7 @@ export default function VideoUpload({ onUploadComplete, initialError = null }: V
                 onClick={() => setPersonality(id)}
                 className={`notch [--notch:8px] focus-inset min-h-[44px] px-4 text-xs tracking-wider border-2 transition-colors duration-200 ${
                   isActive
-                    ? `${tone.border} ${tone.text}`
+                    ? `${tone.border} ${tone.text} animate-tape-on`
                     : 'border-chalk/30 text-chalk/70 hover:border-chalk/60 hover:text-chalk'
                 }`}
               >
@@ -180,8 +180,9 @@ export default function VideoUpload({ onUploadComplete, initialError = null }: V
         </div>
         <p
           id="coach-hint"
-          className={`text-[10px] tracking-widest uppercase ${
-            personality === 'abusive' ? 'text-[rgb(var(--signal-pink))]' : 'opacity-70'
+          key={personality}
+          className={`text-[10px] tracking-widest uppercase animate-hint-in ${
+            personality === 'abusive' ? 'text-[rgb(var(--signal-pink))]' : 'text-chalk/70'
           }`}
         >
           {COACHES.find((c) => c.id === personality)?.hint}
