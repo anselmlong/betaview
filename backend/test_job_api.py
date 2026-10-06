@@ -32,5 +32,35 @@ class DeleteJobTests(unittest.TestCase):
         self.assertFalse(self.other.exists())
 
 
+class AnalyzePersonalityTests(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(main.app)
+        self.originals = (main.probe_video_duration, main.process_job)
+        main.probe_video_duration = lambda path: 5.0
+        main.process_job = lambda *args: None
+
+    def tearDown(self):
+        main.probe_video_duration, main.process_job = self.originals
+
+    def test_personality_is_read_from_the_upload_form(self):
+        # The frontend sends personality as a multipart field next to the file
+        response = self.client.post(
+            "/analyze",
+            files={"file": ("climb.mp4", b"video", "video/mp4")},
+            data={"personality": "abusive"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["personality"], "abusive")
+        self.assertEqual(main.jobs[response.json()["job_id"]].personality, "abusive")
+
+    def test_unknown_personality_is_rejected(self):
+        response = self.client.post(
+            "/analyze",
+            files={"file": ("climb.mp4", b"video", "video/mp4")},
+            data={"personality": "rude"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+
 if __name__ == "__main__":
     unittest.main()

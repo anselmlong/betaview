@@ -21,6 +21,7 @@ from fastapi import (
     FastAPI,
     UploadFile,
     File,
+    Form,
     HTTPException,
     BackgroundTasks,
     Request,
@@ -202,7 +203,7 @@ async def analyze_video(
     background_tasks: BackgroundTasks,
     request: Request,
     file: UploadFile = File(...),
-    personality: str = "normal",
+    personality: str = Form("normal"),
 ):
     """
     Upload a climbing video for analysis.
