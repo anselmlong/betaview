@@ -445,9 +445,20 @@ def get_file_range_response(
         )
 
 
+def require_valid_job_id(job_id: str) -> None:
+    """Reject anything that is not a canonical job UUID before touching the filesystem."""
+    try:
+        valid = str(uuid.UUID(job_id)) == job_id
+    except ValueError:
+        valid = False
+    if not valid:
+        raise HTTPException(404, "Job not found")
+
+
 @app.get("/video/{job_id}")
 async def get_annotated_video(job_id: str, request: Request):
     """Stream the annotated video with Range header support."""
+    require_valid_job_id(job_id)
     video_path = OUTPUT_DIR / f"{job_id}_annotated.mp4"
     return get_file_range_response(video_path, request, "video/mp4")
 
@@ -455,6 +466,7 @@ async def get_annotated_video(job_id: str, request: Request):
 @app.get("/video/{job_id}/clean")
 async def get_clean_video(job_id: str, request: Request):
     """Stream the clean video (no overlays) with Range header support."""
+    require_valid_job_id(job_id)
     video_path = OUTPUT_DIR / f"{job_id}_clean.mp4"
     return get_file_range_response(video_path, request, "video/mp4")
 
@@ -462,6 +474,8 @@ async def get_clean_video(job_id: str, request: Request):
 @app.delete("/job/{job_id}")
 async def delete_job(job_id: str):
     """Delete a job and its associated files."""
+    # job_id is interpolated into a glob below, so it must not carry wildcards
+    require_valid_job_id(job_id)
     if job_id in jobs:
         del jobs[job_id]
 
