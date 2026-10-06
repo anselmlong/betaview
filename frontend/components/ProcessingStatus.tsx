@@ -29,6 +29,12 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
     const pollStatus = async () => {
       try {
         const response = await fetch(`${API_URL}/job/${jobId}`)
+        if (response.status === 404) {
+          // Jobs live in server memory, so a restart forgets them; stop polling instead of spinning at 0%
+          clearInterval(interval)
+          onError('This analysis is no longer available. Please upload the video again.')
+          return
+        }
         const data = await response.json()
 
         setProgress(data.progress || 0)
@@ -37,6 +43,10 @@ export default function ProcessingStatus({ jobId, onComplete, onError }: Process
         if (data.status === 'completed') {
           clearInterval(interval)
           const resultResponse = await fetch(`${API_URL}/job/${jobId}/result`)
+          if (!resultResponse.ok) {
+            onError('Could not load the analysis results. Please upload the video again.')
+            return
+          }
           const resultData = await resultResponse.json()
           onComplete({
             jobId,
