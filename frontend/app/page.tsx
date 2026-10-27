@@ -134,6 +134,14 @@ export default function Home() {
           <p className="text-[10px] tracking-widest opacity-60">
             POSE ESTIMATION × MEDIAPIPE × HEURISTIC ANALYSIS
           </p>
+          <a
+            href="https://ko-fi.com/anselmlong"
+            target="_blank"
+            rel="noopener"
+            className="inline-block mt-4 text-[10px] tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity"
+          >
+            ☕ Support on Ko-fi
+          </a>
         </footer>
       </div>
 
