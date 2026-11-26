@@ -50,26 +50,49 @@ RATE_LIMIT_WINDOW_SECONDS = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "360
 RATE_LIMIT_MAX_REQUESTS = int(os.environ.get("RATE_LIMIT_MAX_REQUESTS", "10"))
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".webm"}
 CLEANUP_AFTER_HOURS = 24
+CLEANUP_INTERVAL_SECONDS = 60 * 60
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan event handler for startup and shutdown."""
-    # Startup: cleanup old files
+def cleanup_old_files() -> None:
+    """Delete uploads and outputs older than CLEANUP_AFTER_HOURS."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=CLEANUP_AFTER_HOURS)
     for directory in [UPLOAD_DIR, OUTPUT_DIR]:
         for f in directory.iterdir():
-            if f.is_file():
+            try:
+                if not f.is_file():
+                    continue
                 mtime = datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc)
                 if mtime < cutoff:
                     f.unlink(missing_ok=True)
+            except OSError:
+                continue
 
-    yield
-    # Shutdown: cleanup code here if needed
+
+async def periodic_cleanup() -> None:
+    while True:
+        try:
+            await asyncio.to_thread(cleanup_old_files)
+        except Exception as e:
+            print(f"Cleanup failed: {e}")
+        await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run file cleanup on startup and hourly until shutdown."""
+    cleanup_task = asyncio.create_task(periodic_cleanup())
+    try:
+        yield
+    finally:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -125,13 +148,18 @@ async def health():
 
 
 def get_client_ip(request: Request) -> str:
-    """Return best-effort client IP when running behind a proxy."""
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip")
+    """Return the client IP as seen by the nearest trusted proxy.
+
+    The leftmost X-Forwarded-For entry is client-controlled, so only the
+    proxy-set X-Real-IP or the rightmost X-Forwarded-For entry is trusted.
+    """
+    real_ip = request.headers.get("x-real-ip", "").strip()
     if real_ip:
         return real_ip
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    hops = [hop.strip() for hop in forwarded_for.split(",") if hop.strip()]
+    if hops:
+        return hops[-1]
     return request.client.host if request.client else "unknown"
 
 
@@ -233,7 +261,6 @@ async def analyze_video(
         _, video_hash = await save_upload_with_hash(file, upload_path)
         duration = probe_video_duration(upload_path)
         if duration > MAX_VIDEO_DURATION_SECONDS:
-            upload_path.unlink(missing_ok=True)
             raise HTTPException(
                 400,
                 (
@@ -241,8 +268,10 @@ async def analyze_video(
                 ),
             )
     except HTTPException:
+        upload_path.unlink(missing_ok=True)
         raise
     except Exception as e:
+        upload_path.unlink(missing_ok=True)
         raise HTTPException(500, f"Failed to save file: {str(e)}")
 
     # Create job
@@ -386,6 +415,40 @@ async def get_pose_data(job_id: str):
     return JSONResponse(content=pose_data)
 
 
+def parse_byte_range(range_header: str, file_size: int) -> Optional[tuple[int, int]]:
+    """Parse a single-range "bytes=" header into inclusive (start, end).
+
+    Returns None when the range is malformed or unsatisfiable.
+    """
+    unit, _, spec = range_header.strip().partition("=")
+    if unit.strip().lower() != "bytes" or "," in spec:
+        return None
+    start_str, sep, end_str = spec.strip().partition("-")
+    start_str, end_str = start_str.strip(), end_str.strip()
+    if not sep or not (start_str.isdigit() or start_str == ""):
+        return None
+    if not (end_str.isdigit() or end_str == ""):
+        return None
+    if file_size <= 0:
+        return None
+
+    if start_str == "":
+        # Suffix range: last N bytes.
+        if end_str == "":
+            return None
+        suffix = int(end_str)
+        if suffix == 0:
+            return None
+        return max(0, file_size - suffix), file_size - 1
+
+    start = int(start_str)
+    end = int(end_str) if end_str else file_size - 1
+    end = min(end, file_size - 1)
+    if start > end or start >= file_size:
+        return None
+    return start, end
+
+
 def get_file_range_response(
     file_path: Path, request: Request, media_type: str
 ) -> Response:
@@ -397,15 +460,16 @@ def get_file_range_response(
     range_header = request.headers.get("range")
 
     if range_header:
-        # Parse range header (e.g., "bytes=0-1023")
-        try:
-            byte_range = range_header.replace("bytes=", "").split("-")
-            start = int(byte_range[0]) if byte_range[0] else 0
-            end = int(byte_range[1]) if byte_range[1] else file_size - 1
-            end = min(end, file_size - 1)
-        except (ValueError, IndexError):
-            raise HTTPException(400, "Invalid Range header")
-
+        byte_range = parse_byte_range(range_header, file_size)
+        if byte_range is None:
+            return Response(
+                status_code=416,
+                headers={
+                    "Content-Range": f"bytes */{file_size}",
+                    "Accept-Ranges": "bytes",
+                },
+            )
+        start, end = byte_range
         content_length = end - start + 1
 
         def read_file_range():
